@@ -293,7 +293,7 @@
         const x = BLOCK_GAP + col * (BLOCK_W + BLOCK_GAP);
         const y = BLOCK_TOP + row * (BLOCK_H + BLOCK_GAP);
         const hp = row < 2 ? 1 : (row < 4 ? 2 : 3);
-        blocks.push({ x, y, w: BLOCK_W, h: BLOCK_H, hp, maxHp: hp,
+        blocks.push({ x, y, w: BLOCK_W, h: BLOCK_H, hp, maxHp: hp, hitTimer: 0,
           color: BLOCK_COLORS[row][0], dark: BLOCK_COLORS[row][1] });
       }
     }
@@ -374,40 +374,37 @@
   }
 
   function checkBlockCollisions() {
-    let broken = false;
+    let hitBlock = null;
     for (const b of blocks) {
-      if (b.hp <= 0) continue;
+      // Tick cooldown every frame regardless
+      if (b.hitTimer > 0) b.hitTimer--;
+
+      // Skip dead blocks, blocks still on cooldown, or if already hit one this frame
+      if (b.hp <= 0 || b.hitTimer > 0 || hitBlock) continue;
+
       if (
         ball.x + ball.r > b.x &&
         ball.x - ball.r < b.x + b.w &&
         ball.y + ball.r > b.y &&
         ball.y - ball.r < b.y + b.h
       ) {
-        // Determine collision axis
         const overlapL = (ball.x + ball.r) - b.x;
         const overlapR = (b.x + b.w) - (ball.x - ball.r);
         const overlapT = (ball.y + ball.r) - b.y;
         const overlapB = (b.y + b.h) - (ball.y - ball.r);
         const minH = Math.min(overlapL, overlapR);
         const minV = Math.min(overlapT, overlapB);
-        if (minH < minV) {
-          ball.vx *= -1;
-          ball.x = overlapL < overlapR ? b.x - ball.r : b.x + b.w + ball.r;
-        } else {
-          ball.vy *= -1;
-          ball.y = overlapT < overlapB ? b.y - ball.r : b.y + b.h + ball.r;
-        }
+        if (minH < minV) ball.vx *= -1; else ball.vy *= -1;
 
+        b.hitTimer = 10; // ignore this block for 10 frames so ball can exit it
         b.hp--;
         score += 10 * (b.maxHp - b.hp + 1);
         spawnParticles((b.x + b.w/2), (b.y + b.h/2), b.color, b.hp <= 0 ? 12 : 5);
         updateHUD();
-        broken = true;
-        break;
+        hitBlock = b;
       }
     }
-    if (broken && blocks.every(b => b.hp <= 0)) {
-      // Level complete
+    if (hitBlock !== null && blocks.every(b => b.hp <= 0)) {
       level++;
       if (level > 5) {
         state = 'won';
