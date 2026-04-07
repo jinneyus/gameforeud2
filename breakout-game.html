@@ -390,7 +390,13 @@
         const overlapB = (b.y + b.h) - (ball.y - ball.r);
         const minH = Math.min(overlapL, overlapR);
         const minV = Math.min(overlapT, overlapB);
-        if (minH < minV) ball.vx *= -1; else ball.vy *= -1;
+        if (minH < minV) {
+          ball.vx *= -1;
+          ball.x = overlapL < overlapR ? b.x - ball.r : b.x + b.w + ball.r;
+        } else {
+          ball.vy *= -1;
+          ball.y = overlapT < overlapB ? b.y - ball.r : b.y + b.h + ball.r;
+        }
 
         b.hp--;
         score += 10 * (b.maxHp - b.hp + 1);

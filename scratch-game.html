@@ -438,7 +438,7 @@
     ctx.translate(x, y);
     ctx.scale(scale, scale);
     ctx.fillStyle = 'white';
-    [[0,0,36],[−30,10,26],[30,10,26],[−15,16,22],[15,16,22]].forEach(([cx,cy,r]) => {
+    [[0,0,36],[-30,10,26],[30,10,26],[-15,16,22],[15,16,22]].forEach(([cx,cy,r]) => {
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.fill();
