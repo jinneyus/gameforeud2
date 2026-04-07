@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>스크래치 아트 - 마우스 연습</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 20px;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 16px;
+    }
+
+    .header h1 { font-size: 2rem; text-shadow: 1px 2px 6px rgba(0,0,0,0.3); }
+    .header p  { font-size: 1rem; opacity: 0.9; margin-top: 4px; }
+
+    .game-container {
+      background: white;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    #canvas-wrapper {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: crosshair;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+
+    canvas {
+      display: block;
+    }
+
+    .info-bar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .progress-wrap {
+      flex: 1;
+      background: #eee;
+      border-radius: 999px;
+      height: 20px;
+      overflow: hidden;
+    }
+
+    #progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #f093fb, #f5576c);
+      border-radius: 999px;
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    #pct-label {
+      font-size: 1rem;
+      font-weight: bold;
+      color: #555;
+      white-space: nowrap;
+    }
+
+    .btn {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 999px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .btn:hover { transform: scale(1.05); }
+
+    #btn-reset {
+      background: linear-gradient(135deg, #f093fb, #f5576c);
+      color: white;
+      box-shadow: 0 4px 12px rgba(245,87,108,0.4);
+    }
+
+    .select-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .theme-btn {
+      padding: 8px 18px;
+      border: 2px solid #eee;
+      border-radius: 999px;
+      background: white;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.15s;
+      color: #555;
+    }
+
+    .theme-btn:hover, .theme-btn.active {
+      border-color: #f5576c;
+      color: #f5576c;
+      background: #fff0f2;
+    }
+
+    /* Overlay modal */
+    #overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    #overlay.show { display: flex; }
+
+    .modal {
+      background: white;
+      border-radius: 24px;
+      padding: 40px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      animation: pop 0.3s ease;
+    }
+
+    @keyframes pop {
+      from { transform: scale(0.7); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    .modal .emoji  { font-size: 4rem; margin-bottom: 12px; }
+    .modal h2      { font-size: 1.8rem; color: #f5576c; margin-bottom: 8px; }
+    .modal p       { color: #777; margin-bottom: 24px; }
+
+    #btn-play-again {
+      background: linear-gradient(135deg, #f093fb, #f5576c);
+      color: white;
+      box-shadow: 0 4px 16px rgba(245,87,108,0.4);
+    }
+
+    .back-link {
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      font-size: 0.95rem;
+      margin-top: 16px;
+      display: inline-block;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: white; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>🖱️ 스크래치 아트</h1>
+    <p>마우스를 클릭·드래그해서 그림을 찾아보세요!</p>
+  </div>
+
+  <div class="game-container">
+    <div class="select-bar" id="theme-bar">
+      <button class="theme-btn active" data-theme="rainbow">🌈 무지개</button>
+      <button class="theme-btn" data-theme="space">🚀 우주</button>
+      <button class="theme-btn" data-theme="ocean">🐠 바다</button>
+      <button class="theme-btn" data-theme="forest">🌲 숲</button>
+    </div>
+
+    <div id="canvas-wrapper">
+      <canvas id="hidden-canvas" width="480" height="360" style="display:none;"></canvas>
+      <canvas id="scratch-canvas" width="480" height="360"></canvas>
+    </div>
+
+    <div class="info-bar">
+      <div class="progress-wrap">
+        <div id="progress-bar"></div>
+      </div>
+      <span id="pct-label">0%</span>
+      <button class="btn" id="btn-reset">🔄 새 그림</button>
+    </div>
+  </div>
+
+  <a class="back-link" href="index.html">← 게임 선택으로 돌아가기</a>
+
+  <!-- Completion overlay -->
+  <div id="overlay">
+    <div class="modal">
+      <div class="emoji">🎉</div>
+      <h2>완성!</h2>
+      <p>마우스를 잘 사용했어요!<br>새로운 그림을 긁어볼까요?</p>
+      <button class="btn" id="btn-play-again">다시 하기</button>
+    </div>
+  </div>
+
+<script>
+  const hiddenCanvas  = document.getElementById('hidden-canvas');
+  const scratchCanvas = document.getElementById('scratch-canvas');
+  const hCtx = hiddenCanvas.getContext('2d');
+  const sCtx = scratchCanvas.getContext('2d');
+  const W = scratchCanvas.width;
+  const H = scratchCanvas.height;
+
+  let isDrawing = false;
+  let currentTheme = 'rainbow';
+  let revealed = false;
+
+  // ── Theme drawing functions ──────────────────────────────────────────────
+
+  const themes = {
+    rainbow(ctx) {
+      // Sky gradient
+      const sky = ctx.createLinearGradient(0, 0, 0, H);
+      sky.addColorStop(0, '#87CEEB');
+      sky.addColorStop(1, '#E0F7FA');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, W, H);
+
+      // Rainbow arcs
+      const colors = ['#FF0000','#FF7F00','#FFFF00','#00CC00','#0000FF','#8B00FF'];
+      colors.forEach((c, i) => {
+        const r = 180 - i * 22;
+        ctx.beginPath();
+        ctx.arc(W/2, H + 20, r, Math.PI, 0);
+        ctx.strokeStyle = c;
+        ctx.lineWidth = 18;
+        ctx.stroke();
+      });
+
+      // Sun
+      ctx.fillStyle = '#FFD700';
+      ctx.beginPath();
+      ctx.arc(80, 80, 50, 0, Math.PI * 2);
+      ctx.fill();
+      for (let a = 0; a < 360; a += 45) {
+        const rad = a * Math.PI / 180;
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(80 + Math.cos(rad) * 58, 80 + Math.sin(rad) * 58);
+        ctx.lineTo(80 + Math.cos(rad) * 78, 80 + Math.sin(rad) * 78);
+        ctx.stroke();
+      }
+
+      // Clouds
+      drawCloud(ctx, 340, 70, 1.2);
+      drawCloud(ctx, 130, 140, 0.8);
+
+      // Green ground
+      ctx.fillStyle = '#4CAF50';
+      ctx.fillRect(0, H * 0.75, W, H * 0.25);
+
+      // Flowers
+      drawFlower(ctx, 80,  H * 0.77, '#FF69B4');
+      drawFlower(ctx, 160, H * 0.78, '#FF4500');
+      drawFlower(ctx, 260, H * 0.77, '#9C27B0');
+      drawFlower(ctx, 370, H * 0.78, '#2196F3');
+      drawFlower(ctx, 440, H * 0.77, '#FF9800');
+    },
+
+    space(ctx) {
+      // Dark background
+      ctx.fillStyle = '#0A0A2E';
+      ctx.fillRect(0, 0, W, H);
+
+      // Stars
+      for (let i = 0; i < 120; i++) {
+        const x = Math.random() * W;
+        const y = Math.random() * H;
+        const r = Math.random() * 2 + 0.5;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255,${0.4 + Math.random() * 0.6})`;
+        ctx.fill();
+      }
+
+      // Big planet
+      const grad = ctx.createRadialGradient(300, 160, 10, 300, 160, 90);
+      grad.addColorStop(0, '#FF9A3C');
+      grad.addColorStop(1, '#C0392B');
+      ctx.beginPath();
+      ctx.arc(300, 160, 90, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Planet rings
+      ctx.save();
+      ctx.translate(300, 160);
+      ctx.scale(1, 0.3);
+      ctx.beginPath();
+      ctx.arc(0, 0, 130, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255,200,100,0.5)';
+      ctx.lineWidth = 18;
+      ctx.stroke();
+      ctx.restore();
+
+      // Rocket
+      drawRocket(ctx, 100, 200);
+
+      // Moon
+      ctx.beginPath();
+      ctx.arc(420, 80, 40, 0, Math.PI * 2);
+      ctx.fillStyle = '#ECEFF1';
+      ctx.fill();
+      ctx.beginPath(); ctx.arc(430, 70, 8, 0, Math.PI*2); ctx.fillStyle = '#CFD8DC'; ctx.fill();
+      ctx.beginPath(); ctx.arc(410, 90, 6, 0, Math.PI*2); ctx.fillStyle = '#CFD8DC'; ctx.fill();
+
+      // Text
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.font = 'bold 28px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🚀 우주 탐험!', W/2, H - 30);
+    },
+
+    ocean(ctx) {
+      // Sky
+      const sky = ctx.createLinearGradient(0, 0, 0, H * 0.4);
+      sky.addColorStop(0, '#87CEEB');
+      sky.addColorStop(1, '#B0E2FF');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, W, H * 0.4);
+
+      // Water
+      const water = ctx.createLinearGradient(0, H * 0.4, 0, H);
+      water.addColorStop(0, '#006994');
+      water.addColorStop(1, '#003366');
+      ctx.fillStyle = water;
+      ctx.fillRect(0, H * 0.4, W, H * 0.6);
+
+      // Waves
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 4; i++) {
+        const y0 = H * 0.42 + i * 30;
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 5) {
+          const y = y0 + Math.sin(x * 0.05 + i) * 6;
+          i === 0 && x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      // Sun & reflection
+      ctx.beginPath();
+      ctx.arc(80, 80, 45, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFD700';
+      ctx.fill();
+
+      // Fish
+      drawFish(ctx, 180, 260, '#FF6B6B', 1);
+      drawFish(ctx, 330, 310, '#4FC3F7', -1);
+      drawFish(ctx, 420, 250, '#FFD54F', 1);
+
+      // Octopus
+      drawOctopus(ctx, 250, 320);
+
+      // Bubbles
+      [50,120,200,310,400,450].forEach(x => {
+        [0,1,2].forEach(i => {
+          ctx.beginPath();
+          ctx.arc(x + i*10, H * 0.5 + i * 30, 4 + i*2, 0, Math.PI*2);
+          ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        });
+      });
+    },
+
+    forest(ctx) {
+      // Sky
+      const sky = ctx.createLinearGradient(0, 0, 0, H * 0.5);
+      sky.addColorStop(0, '#FFF9C4');
+      sky.addColorStop(1, '#B3E5FC');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, W, H);
+
+      // Ground
+      ctx.fillStyle = '#8BC34A';
+      ctx.fillRect(0, H * 0.72, W, H * 0.28);
+
+      // Trees (back row)
+      [40, 120, 200, 280, 360, 440].forEach((x, i) => {
+        drawTree(ctx, x, H * 0.72, 0.7 + (i%2)*0.1, '#33691E');
+      });
+      // Trees (front row, bigger)
+      [80, 190, 310, 420].forEach((x, i) => {
+        drawTree(ctx, x, H * 0.72, 1 + (i%2)*0.15, '#558B2F');
+      });
+
+      // Mushrooms
+      drawMushroom(ctx, 150, H * 0.74);
+      drawMushroom(ctx, 370, H * 0.74);
+
+      // Deer
+      drawDeer(ctx, 240, H * 0.72);
+
+      // Birds
+      [[60, 80], [160, 60], [400, 90]].forEach(([x, y]) => {
+        ctx.strokeStyle = '#555';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x, y); ctx.quadraticCurveTo(x+10, y-8, x+20, y);
+        ctx.moveTo(x+20, y); ctx.quadraticCurveTo(x+30, y-8, x+40, y);
+        ctx.stroke();
+      });
+
+      // Sun
+      ctx.beginPath();
+      ctx.arc(W - 70, 60, 40, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFD600';
+      ctx.fill();
+    }
+  };
+
+  // ── Helper drawing utilities ─────────────────────────────────────────────
+
+  function drawCloud(ctx, x, y, scale) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = 'white';
+    [[0,0,36],[−30,10,26],[30,10,26],[−15,16,22],[15,16,22]].forEach(([cx,cy,r]) => {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  function drawFlower(ctx, x, y, color) {
+    ctx.fillStyle = '#2E7D32';
+    ctx.fillRect(x - 3, y - 30, 6, 30);
+    for (let a = 0; a < 360; a += 60) {
+      const rad = a * Math.PI / 180;
+      ctx.beginPath();
+      ctx.ellipse(x + Math.cos(rad)*14, y - 30 + Math.sin(rad)*14, 9, 6, rad, 0, Math.PI*2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.arc(x, y - 30, 8, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFD700';
+    ctx.fill();
+  }
+
+  function drawRocket(ctx, x, y) {
+    // Body
+    ctx.fillStyle = '#CFD8DC';
+    ctx.beginPath();
+    ctx.roundRect(x - 15, y - 50, 30, 60, 4);
+    ctx.fill();
+    // Nose
+    ctx.fillStyle = '#F44336';
+    ctx.beginPath();
+    ctx.moveTo(x, y - 80);
+    ctx.lineTo(x - 15, y - 50);
+    ctx.lineTo(x + 15, y - 50);
+    ctx.closePath();
+    ctx.fill();
+    // Fins
+    ctx.fillStyle = '#FF5722';
+    ctx.beginPath(); ctx.moveTo(x - 15, y + 10); ctx.lineTo(x - 30, y + 30); ctx.lineTo(x - 15, y); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x + 15, y + 10); ctx.lineTo(x + 30, y + 30); ctx.lineTo(x + 15, y); ctx.fill();
+    // Window
+    ctx.beginPath();
+    ctx.arc(x, y - 20, 10, 0, Math.PI * 2);
+    ctx.fillStyle = '#29B6F6';
+    ctx.fill();
+    // Flame
+    const grad = ctx.createRadialGradient(x, y+30, 2, x, y+30, 18);
+    grad.addColorStop(0, '#FFF176');
+    grad.addColorStop(0.5, '#FF9800');
+    grad.addColorStop(1, 'rgba(255,0,0,0)');
+    ctx.beginPath();
+    ctx.ellipse(x, y+32, 10, 22, 0, 0, Math.PI*2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+
+  function drawFish(ctx, x, y, color, dir) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(dir, 1);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 30, 16, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(28, 0); ctx.lineTo(44, -14); ctx.lineTo(44, 14); ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(-16, -6, 5, 0, Math.PI * 2);
+    ctx.fillStyle = 'white'; ctx.fill();
+    ctx.beginPath();
+    ctx.arc(-16, -6, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#222'; ctx.fill();
+    ctx.restore();
+  }
+
+  function drawOctopus(ctx, x, y) {
+    ctx.fillStyle = '#CE93D8';
+    ctx.beginPath(); ctx.ellipse(x, y - 24, 28, 24, 0, 0, Math.PI*2); ctx.fill();
+    // Tentacles
+    for (let i = -3; i <= 3; i++) {
+      const tx = x + i * 8;
+      ctx.strokeStyle = '#BA68C8'; ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(tx, y - 4);
+      ctx.bezierCurveTo(tx - 8, y + 20, tx + 8, y + 30, tx, y + 44);
+      ctx.stroke();
+    }
+    ctx.beginPath(); ctx.arc(x-10, y-28, 6, 0, Math.PI*2); ctx.fillStyle='white'; ctx.fill();
+    ctx.beginPath(); ctx.arc(x-10, y-28, 3, 0, Math.PI*2); ctx.fillStyle='#222'; ctx.fill();
+    ctx.beginPath(); ctx.arc(x+10, y-28, 6, 0, Math.PI*2); ctx.fillStyle='white'; ctx.fill();
+    ctx.beginPath(); ctx.arc(x+10, y-28, 3, 0, Math.PI*2); ctx.fillStyle='#222'; ctx.fill();
+  }
+
+  function drawTree(ctx, x, baseY, scale, color) {
+    const h = 140 * scale;
+    ctx.fillStyle = '#5D4037';
+    ctx.fillRect(x - 6*scale, baseY - 36*scale, 12*scale, 36*scale);
+    ctx.fillStyle = color;
+    [[0, h, 55*scale], [0, h*0.65, 45*scale], [0, h*0.38, 36*scale]].forEach(([dx, dy, r]) => {
+      ctx.beginPath();
+      ctx.arc(x + dx, baseY - dy, r, 0, Math.PI*2);
+      ctx.fill();
+    });
+  }
+
+  function drawMushroom(ctx, x, y) {
+    ctx.fillStyle = '#8D6E63';
+    ctx.beginPath(); ctx.roundRect(x-6, y-18, 12, 18, 2); ctx.fill();
+    ctx.fillStyle = '#F44336';
+    ctx.beginPath(); ctx.arc(x, y-22, 20, Math.PI, 0); ctx.fill();
+    [[-8,-16],[0,-24],[8,-16]].forEach(([dx,dy]) => {
+      ctx.beginPath(); ctx.arc(x+dx, y+dy, 4, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fill();
+    });
+  }
+
+  function drawDeer(ctx, x, y) {
+    const b = y;
+    // Legs
+    ctx.strokeStyle = '#795548'; ctx.lineWidth = 5;
+    [[-14,0],[-6,0],[6,0],[14,0]].forEach(([dx]) => {
+      ctx.beginPath(); ctx.moveTo(x+dx, b-30); ctx.lineTo(x+dx, b); ctx.stroke();
+    });
+    // Body
+    ctx.fillStyle = '#A1887F';
+    ctx.beginPath(); ctx.ellipse(x, b-44, 28, 18, 0, 0, Math.PI*2); ctx.fill();
+    // Head
+    ctx.beginPath(); ctx.ellipse(x+26, b-58, 14, 12, 0.3, 0, Math.PI*2); ctx.fill();
+    // Nose
+    ctx.beginPath(); ctx.arc(x+38, b-56, 4, 0, Math.PI*2);
+    ctx.fillStyle = '#FF8A65'; ctx.fill();
+    // Eye
+    ctx.beginPath(); ctx.arc(x+30, b-62, 3, 0, Math.PI*2);
+    ctx.fillStyle = '#212121'; ctx.fill();
+    // Antlers
+    ctx.strokeStyle = '#6D4C41'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(x+20, b-66); ctx.lineTo(x+14, b-82); ctx.lineTo(x+8, b-76); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+14, b-82); ctx.lineTo(x+20, b-90); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+28, b-66); ctx.lineTo(x+34, b-82); ctx.lineTo(x+40, b-76); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+34, b-82); ctx.lineTo(x+28, b-90); ctx.stroke();
+  }
+
+  // ── Game logic ────────────────────────────────────────────────────────────
+
+  function drawHiddenImage() {
+    hCtx.clearRect(0, 0, W, H);
+    themes[currentTheme](hCtx);
+  }
+
+  function drawScratchLayer() {
+    sCtx.clearRect(0, 0, W, H);
+    // Copy hidden image
+    sCtx.drawImage(hiddenCanvas, 0, 0);
+    // Black overlay (destination-in trick via globalCompositeOperation)
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = W; tmpCanvas.height = H;
+    const tCtx = tmpCanvas.getContext('2d');
+    tCtx.fillStyle = '#333';
+    tCtx.fillRect(0, 0, W, H);
+    // sparkle pattern
+    tCtx.fillStyle = 'rgba(255,255,255,0.05)';
+    for (let i = 0; i < 300; i++) {
+      tCtx.beginPath();
+      tCtx.arc(Math.random()*W, Math.random()*H, Math.random()*3, 0, Math.PI*2);
+      tCtx.fill();
+    }
+    sCtx.drawImage(tmpCanvas, 0, 0);
+    revealed = false;
+    updateProgress();
+  }
+
+  function resetGame() {
+    drawHiddenImage();
+    // Reset scratch canvas with overlay
+    sCtx.clearRect(0, 0, W, H);
+    // Draw dark overlay using offscreen canvas for scratch effect
+    overlayCanvas.getContext('2d').clearRect(0, 0, W, H);
+    const oc = overlayCanvas.getContext('2d');
+    oc.fillStyle = '#2C2C2C';
+    oc.fillRect(0, 0, W, H);
+    // Metallic sheen
+    for (let y2 = 0; y2 < H; y2 += 4) {
+      oc.fillStyle = `rgba(255,255,255,${0.02 + (y2/H)*0.03})`;
+      oc.fillRect(0, y2, W, 2);
+    }
+    renderFrame();
+    revealed = false;
+    updateProgress();
+    document.getElementById('overlay').classList.remove('show');
+  }
+
+  // Offscreen overlay canvas that we scratch into
+  const overlayCanvas = document.createElement('canvas');
+  overlayCanvas.width = W;
+  overlayCanvas.height = H;
+
+  function renderFrame() {
+    sCtx.clearRect(0, 0, W, H);
+    sCtx.drawImage(hiddenCanvas, 0, 0);
+    sCtx.drawImage(overlayCanvas, 0, 0);
+  }
+
+  function scratch(x, y) {
+    const oc = overlayCanvas.getContext('2d');
+    oc.globalCompositeOperation = 'destination-out';
+    oc.beginPath();
+    oc.arc(x, y, 28, 0, Math.PI * 2);
+    oc.fill();
+    oc.globalCompositeOperation = 'source-over';
+    renderFrame();
+    updateProgress();
+  }
+
+  function getPos(e) {
+    const rect = scratchCanvas.getBoundingClientRect();
+    const scaleX = W / rect.width;
+    const scaleY = H / rect.height;
+    if (e.touches) {
+      return {
+        x: (e.touches[0].clientX - rect.left) * scaleX,
+        y: (e.touches[0].clientY - rect.top)  * scaleY
+      };
+    }
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top)  * scaleY
+    };
+  }
+
+  function updateProgress() {
+    const oc = overlayCanvas.getContext('2d');
+    const data = oc.getImageData(0, 0, W, H).data;
+    let transparent = 0;
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] < 128) transparent++;
+    }
+    const pct = Math.round(transparent / (W * H) * 100);
+    document.getElementById('progress-bar').style.width = pct + '%';
+    document.getElementById('pct-label').textContent = pct + '%';
+    if (pct >= 70 && !revealed) {
+      revealed = true;
+      setTimeout(() => document.getElementById('overlay').classList.add('show'), 400);
+    }
+  }
+
+  // ── Event listeners ───────────────────────────────────────────────────────
+
+  scratchCanvas.addEventListener('mousedown', e => { isDrawing = true; scratch(...Object.values(getPos(e))); });
+  scratchCanvas.addEventListener('mousemove', e => { if (isDrawing) scratch(...Object.values(getPos(e))); });
+  scratchCanvas.addEventListener('mouseup',   () => { isDrawing = false; });
+  scratchCanvas.addEventListener('mouseleave',() => { isDrawing = false; });
+
+  scratchCanvas.addEventListener('touchstart', e => { e.preventDefault(); isDrawing = true; scratch(...Object.values(getPos(e))); }, { passive: false });
+  scratchCanvas.addEventListener('touchmove',  e => { e.preventDefault(); if (isDrawing) scratch(...Object.values(getPos(e))); }, { passive: false });
+  scratchCanvas.addEventListener('touchend',   () => { isDrawing = false; });
+
+  document.getElementById('btn-reset').addEventListener('click', resetGame);
+  document.getElementById('btn-play-again').addEventListener('click', resetGame);
+
+  document.getElementById('theme-bar').addEventListener('click', e => {
+    const btn = e.target.closest('.theme-btn');
+    if (!btn) return;
+    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTheme = btn.dataset.theme;
+    resetGame();
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  resetGame();
+</script>
+</body>
+</html>

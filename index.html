@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>컴퓨터 익히기 게임</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 20px;
+    }
+
+    h1 {
+      color: white;
+      font-size: 2.5rem;
+      text-align: center;
+      margin-bottom: 12px;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .subtitle {
+      color: rgba(255,255,255,0.85);
+      font-size: 1.1rem;
+      margin-bottom: 50px;
+      text-align: center;
+    }
+
+    .cards {
+      display: flex;
+      gap: 30px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .card {
+      background: white;
+      border-radius: 24px;
+      padding: 40px 36px;
+      width: 300px;
+      text-align: center;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      cursor: pointer;
+    }
+
+    .card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    }
+
+    .card .icon {
+      font-size: 4rem;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .card p {
+      color: #777;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .card .badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: white;
+    }
+
+    .card.scratch .badge { background: #f093fb; }
+    .card.breakout .badge { background: #4facfe; }
+
+    .card.scratch { border-top: 6px solid #f093fb; }
+    .card.breakout { border-top: 6px solid #4facfe; }
+
+    footer {
+      margin-top: 50px;
+      color: rgba(255,255,255,0.6);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎮 컴퓨터 익히기 게임</h1>
+  <p class="subtitle">마우스와 키보드를 연습해보세요!</p>
+
+  <div class="cards">
+    <a class="card scratch" href="scratch-game.html">
+      <span class="icon">🖱️</span>
+      <h2>스크래치 아트</h2>
+      <p>마우스로 검은 코팅을 긁어서<br>숨겨진 그림을 찾아보세요!</p>
+      <span class="badge">마우스 연습</span>
+    </a>
+
+    <a class="card breakout" href="breakout-game.html">
+      <span class="icon">⌨️</span>
+      <h2>블록 깨기</h2>
+      <p>키보드 방향키로 패들을 움직여<br>모든 블록을 깨보세요!</p>
+      <span class="badge">키보드 연습</span>
+    </a>
+  </div>
+
+  <footer>초등학생을 위한 컴퓨터 기초 게임</footer>
+
+</body>
+</html>
